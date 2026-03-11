@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Analog Index</title>
+<style>
+  :root {
+    --bg: #1a1a1a; --surface: #242424; --surface2: #2e2e2e;
+    --border: #3a3a3a; --ink: #e8e2d9; --muted: #7a7268;
+    --creative: #a898cc; --academic: #6aadaf; --red: #c07070;
+    --creative-bg: #2a2535; --academic-bg: #1e2e2e;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Georgia', serif; background: var(--bg); color: var(--ink); min-height: 100vh; }
+  header { padding: 1.5rem 2rem 1rem; border-bottom: 1px solid var(--border); display: flex; align-items: baseline; gap: 1rem; flex-wrap: wrap; }
+  header h1 { font-size: 1.5rem; font-weight: normal; letter-spacing: 0.04em; }
+  header span { font-size: 0.85rem; color: var(--muted); }
+  .tabs { display: flex; border-bottom: 1px solid var(--border); background: var(--surface); }
+  .tab { padding: 0.75rem 1.5rem; cursor: pointer; font-size: 0.9rem; border-bottom: 2px solid transparent; color: var(--muted); transition: all 0.15s; }
+  .tab.active { color: var(--ink); border-bottom-color: var(--ink); }
+  .tab:hover { color: var(--ink); }
+  .view { display: none; padding: 1.5rem 2rem; }
+  .view.active { display: block; }
+  .indices { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.5rem; }
+  .index-card { border: 1px solid var(--border); border-radius: 6px; padding: 1.2rem 1.5rem; }
+  .index-card.creative { border-top: 3px solid var(--creative); background: var(--creative-bg); }
+  .index-card.academic { border-top: 3px solid var(--academic); background: var(--academic-bg); }
+  .index-label { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); margin-bottom: 0.3rem; }
+  .index-score { font-size: 2.2rem; font-weight: bold; line-height: 1; }
+  .index-card.creative .index-score { color: var(--creative); }
+  .index-card.academic .index-score { color: var(--academic); }
+  .index-target { font-size: 0.8rem; color: var(--muted); margin-top: 0.3rem; }
+  .progress-bar { height: 6px; background: var(--border); border-radius: 3px; margin-top: 0.6rem; overflow: hidden; }
+  .progress-fill { height: 100%; border-radius: 3px; transition: width 0.4s; }
+  .creative .progress-fill { background: var(--creative); }
+  .academic .progress-fill { background: var(--academic); }
+  .target-row { display: flex; gap: 1rem; margin-bottom: 1.5rem; flex-wrap: wrap; align-items: flex-end; }
+  .target-group { display: flex; flex-direction: column; gap: 0.3rem; }
+  .target-group label { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); }
+  .target-group input[type=range] { width: 140px; accent-color: var(--ink); }
+  .target-val { font-size: 0.85rem; font-weight: bold; color: var(--ink); }
+  .form-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 0.75rem; margin-bottom: 1rem; }
+  .form-grid.wide { grid-template-columns: 1fr 1fr 1fr 1fr; }
+  .field { display: flex; flex-direction: column; gap: 0.3rem; }
+  .field label { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); }
+  .field input, .field select, .field textarea { font-family: 'Georgia', serif; font-size: 0.9rem; padding: 0.5rem 0.6rem; border: 1px solid var(--border); border-radius: 4px; background: var(--surface2); color: var(--ink); width: 100%; }
+  .field textarea { resize: vertical; min-height: 60px; }
+  .field input:focus, .field select:focus, .field textarea:focus { outline: none; border-color: var(--muted); }
+  .field select option { background: var(--surface2); }
+  .btn { font-family: 'Georgia', serif; font-size: 0.9rem; padding: 0.55rem 1.2rem; border-radius: 4px; cursor: pointer; transition: all 0.15s; border: 1px solid var(--border); }
+  .btn-primary { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+  .btn-primary:hover { background: #ccc; }
+  .btn-ghost { background: transparent; color: var(--ink); }
+  .btn-ghost:hover { background: var(--surface2); }
+  .btn-danger { background: transparent; color: var(--red); border-color: var(--red); font-size: 0.8rem; padding: 0.3rem 0.7rem; }
+  .btn-danger:hover { background: var(--red); color: var(--bg); }
+  table { width: 100%; border-collapse: collapse; font-size: 0.88rem; }
+  th { text-align: left; padding: 0.5rem 0.75rem; font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); border-bottom: 1px solid var(--border); font-weight: normal; }
+  td { padding: 0.6rem 0.75rem; border-bottom: 1px solid var(--surface2); vertical-align: top; }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: var(--surface); }
+  .badge { display: inline-block; font-size: 0.72rem; padding: 0.15rem 0.5rem; border-radius: 20px; }
+  .badge.creative { background: var(--creative-bg); color: var(--creative); }
+  .badge.academic { background: var(--academic-bg); color: var(--academic); }
+  .badge.other { background: var(--surface2); color: var(--muted); }
+  .empty { text-align: center; padding: 3rem; color: var(--muted); font-style: italic; }
+  .week-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 0.5rem; margin-bottom: 1.5rem; }
+  .day-cell { background: var(--surface); border: 1px solid var(--border); border-radius: 4px; padding: 0.6rem; min-height: 80px; }
+  .day-cell.today { border-color: var(--ink); }
+  .day-name { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); margin-bottom: 0.4rem; }
+  .day-date { font-size: 0.85rem; margin-bottom: 0.4rem; }
+  .day-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin: 1px; }
+  .section-title { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); margin-bottom: 0.75rem; margin-top: 1.5rem; }
+  .section-title:first-child { margin-top: 0; }
+  .filter-row { display: flex; gap: 0.5rem; margin-bottom: 1rem; flex-wrap: wrap; align-items: center; }
+  .filter-row select, .filter-row input { font-family: 'Georgia', serif; font-size: 0.85rem; padding: 0.4rem 0.6rem; border: 1px solid var(--border); border-radius: 4px; background: var(--surface2); color: var(--ink); }
+  .custom-field { margin-top: 0.5rem; display: none; }
+  ::-webkit-calendar-picker-indicator { filter: invert(0.8); }
+  @media (max-width: 600px) {
+    .indices { grid-template-columns: 1fr; }
+    .form-grid, .form-grid.wide { grid-template-columns: 1fr 1fr; }
+    .week-grid { grid-template-columns: repeat(4, 1fr); }
+    header, .view { padding: 1rem; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>✦ Analog Index</h1>
+  <span id="today-date"></span>
+</header>
+
+<div class="tabs">
+  <div class="tab active" onclick="switchTab('dashboard')">Dashboard</div>
+  <div class="tab" onclick="switchTab('log')">Log Entry</div>
+  <div class="tab" onclick="switchTab('history')">History</div>
+</div>
+
+<!-- DASHBOARD -->
+<div id="tab-dashboard" class="view active">
+  <p class="section-title">Set your targets</p>
+  <div class="target-row">
+    <div class="target-group">
+      <label>Creative daily target</label>
+      <input type="range" min="10" max="80" value="30" id="creative-daily-target" oninput="updateTargets()">
+      <span class="target-val" id="cdt-val">30%</span>
+    </div>
+    <div class="target-group">
+      <label>Creative weekly target</label>
+      <input type="range" min="10" max="80" value="35" id="creative-weekly-target" oninput="updateTargets()">
+      <span class="target-val" id="cwt-val">35%</span>
+    </div>
+    <div class="target-group">
+      <label>Academic daily target</label>
+      <input type="range" min="10" max="80" value="40" id="academic-daily-target" oninput="updateTargets()">
+      <span class="target-val" id="adt-val">40%</span>
+    </div>
+    <div class="target-group">
+      <label>Academic weekly target</label>
+      <input type="range" min="10" max="80" value="50" id="academic-weekly-target" oninput="updateTargets()">
+      <span class="target-val" id="awt-val">50%</span>
+    </div>
+  </div>
+
+  <p class="section-title">Today</p>
+  <div class="indices">
+    <div class="index-card creative">
+      <div class="index-label">Creative Index — Today</div>
+      <div class="index-score" id="creative-today">—</div>
+      <div class="index-target" id="creative-today-sub">No entries yet</div>
+      <div class="progress-bar"><div class="progress-fill" id="creative-today-bar" style="width:0%"></div></div>
+    </div>
+    <div class="index-card academic">
+      <div class="index-label">Academic Index — Today</div>
+      <div class="index-score" id="academic-today">—</div>
+      <div class="index-target" id="academic-today-sub">No entries yet</div>
+      <div class="progress-bar"><div class="progress-fill" id="academic-today-bar" style="width:0%"></div></div>
+    </div>
+  </div>
+
+  <p class="section-title">This week</p>
+  <div class="indices">
+    <div class="index-card creative">
+      <div class="index-label">Creative Index — Week</div>
+      <div class="index-score" id="creative-week">—</div>
+      <div class="index-target" id="creative-week-sub">No entries yet</div>
+      <div class="progress-bar"><div class="progress-fill" id="creative-week-bar" style="width:0%"></div></div>
+    </div>
+    <div class="index-card academic">
+      <div class="index-label">Academic Index — Week</div>
+      <div class="index-score" id="academic-week">—</div>
+      <div class="index-target" id="academic-week-sub">No entries yet</div>
+      <div class="progress-bar"><div class="progress-fill" id="academic-week-bar" style="width:0%"></div></div>
+    </div>
+  </div>
+
+  <p class="section-title">This week at a glance</p>
+  <div class="week-grid" id="week-grid"></div>
+</div>
+
+<!-- LOG -->
+<div id="tab-log" class="view">
+  <p class="section-title">New entry</p>
+  <div class="form-grid wide">
+    <div class="field">
+      <label>Date</label>
+      <input type="date" id="entry-date">
+    </div>
+    <div class="field">
+      <label>Category</label>
+      <select id="entry-category" onchange="handleCatChange(this.value)">
+        <optgroup label="Creative">
+          <option value="personal writing">Personal writing</option>
+          <option value="knitting">Knitting</option>
+          <option value="watched a film">Watched a film</option>
+          <option value="personal reading">Personal reading</option>
+          <option value="cooking">Cooking</option>
+          <option value="exercise">Exercise</option>
+          <option value="creative-other">Other creative...</option>
+        </optgroup>
+        <optgroup label="Academic">
+          <option value="academic writing">Academic writing</option>
+          <option value="academic reading">Academic reading</option>
+          <option value="studying">Studying</option>
+          <option value="academic group work">Academic group work</option>
+          <option value="Dow project">Dow project</option>
+          <option value="academic-other">Other academic...</option>
+        </optgroup>
+      </select>
+      <input type="text" id="entry-custom" placeholder="Describe the activity..." class="custom-field" id="entry-custom">
+    </div>
+    <div class="field">
+      <label>Time started</label>
+      <input type="time" id="entry-start">
+    </div>
+    <div class="field">
+      <label>Time ended</label>
+      <input type="time" id="entry-end">
+    </div>
+  </div>
+  <div class="form-grid">
+    <div class="field">
+      <label>Total time (hrs)</label>
+      <input type="number" id="entry-hours" min="0.25" max="12" step="0.25" placeholder="e.g. 1.5">
+    </div>
+    <div class="field" style="grid-column: span 2">
+      <label>Why I stopped / notes</label>
+      <textarea id="entry-notes" placeholder="ran out of time, felt satisfied, had to switch..."></textarea>
+    </div>
+  </div>
+  <button class="btn btn-primary" onclick="addEntry()">Log it ✦</button>
+  <span id="log-feedback" style="margin-left:1rem; font-size:0.85rem; color:var(--muted)"></span>
+</div>
+
+<!-- HISTORY -->
+<div id="tab-history" class="view">
+  <div class="filter-row">
+    <input type="date" id="filter-date" onchange="renderHistory()">
+    <select id="filter-cat" onchange="renderHistory()">
+      <option value="">All categories</option>
+      <option value="creative">Creative only</option>
+      <option value="academic">Academic only</option>
+    </select>
+    <button class="btn btn-ghost" onclick="clearFilters()">Clear</button>
+    <span style="margin-left:auto; font-size:0.8rem; color:var(--muted)" id="history-total"></span>
+  </div>
+  <table>
+    <thead>
+      <tr><th>Date</th><th>Category</th><th>Hours</th><th>Start</th><th>End</th><th>Notes</th><th></th></tr>
+    </thead>
+    <tbody id="history-body"></tbody>
+  </table>
+</div>
+
+<script>
+const CREATIVE = ["personal writing","knitting","watched a film","personal reading","cooking","exercise"];
+const ACADEMIC = ["academic writing","academic reading","studying","academic group work","Dow project"];
+
+let entries = JSON.parse(localStorage.getItem('analog-entries-v2') || '[]');
+let targets = JSON.parse(localStorage.getItem('analog-targets-v2') || '{"cd":30,"cw":35,"ad":40,"aw":50}');
+
+function save() {
+  localStorage.setItem('analog-entries-v2', JSON.stringify(entries));
+  localStorage.setItem('analog-targets-v2', JSON.stringify(targets));
+}
+
+function todayStr() { return new Date().toISOString().slice(0,10); }
+
+function weekStart() {
+  const d = new Date(); d.setHours(0,0,0,0);
+  d.setDate(d.getDate() - d.getDay() + (d.getDay() === 0 ? -6 : 1));
+  return d.toISOString().slice(0,10);
+}
+
+function getType(cat) {
+  const c = cat.toLowerCase();
+  if (CREATIVE.includes(c) || c.startsWith("creative:")) return 'creative';
+  if (ACADEMIC.includes(c) || c.startsWith("academic:")) return 'academic';
+  return 'other';
+}
+
+function handleCatChange(val) {
+  const custom = document.getElementById('entry-custom');
+  custom.style.display = (val === 'creative-other' || val === 'academic-other') ? 'block' : 'none';
+  custom.value = '';
+}
+
+function calcIndices(ents) {
+  const total    = ents.reduce((s,e) => s + (parseFloat(e.hours)||0), 0);
+  const creative = ents.filter(e => getType(e.category)==='creative').reduce((s,e)=>s+(parseFloat(e.hours)||0),0);
+  const academic = ents.filter(e => getType(e.category)==='academic').reduce((s,e)=>s+(parseFloat(e.hours)||0),0);
+  return { total, creative, academic,
+    ci: total ? Math.round(creative/total*100) : null,
+    ai: total ? Math.round(academic/total*100) : null };
+}
+
+function updateTargets() {
+  targets.cd = parseInt(document.getElementById('creative-daily-target').value);
+  targets.cw = parseInt(document.getElementById('creative-weekly-target').value);
+  targets.ad = parseInt(document.getElementById('academic-daily-target').value);
+  targets.aw = parseInt(document.getElementById('academic-weekly-target').value);
+  ['cdt','cwt','adt','awt'].forEach((id,i) =>
+    document.getElementById(id+'-val').textContent = [targets.cd,targets.cw,targets.ad,targets.aw][i]+'%');
+  save(); renderDashboard();
+}
+
+function setCard(scoreId, subId, barId, score, target, hours) {
+  document.getElementById(scoreId).textContent = score !== null ? score+'%' : '—';
+  const sub = document.getElementById(subId), bar = document.getElementById(barId);
+  if (score !== null) {
+    const diff = score - target;
+    sub.textContent = `${hours.toFixed(1)}h logged · target ${target}% · ${diff>=0?'+':''}${diff}pp`;
+    bar.style.width = Math.min(score/target*100, 100)+'%';
+  } else { sub.textContent = 'No entries yet'; bar.style.width = '0%'; }
+}
+
+function renderDashboard() {
+  const today = todayStr(), ws = weekStart();
+  const td = calcIndices(entries.filter(e => e.date===today));
+  const wd = calcIndices(entries.filter(e => e.date>=ws && e.date<=today));
+  setCard('creative-today','creative-today-sub','creative-today-bar', td.ci, targets.cd, td.creative);
+  setCard('academic-today','academic-today-sub','academic-today-bar', td.ai, targets.ad, td.academic);
+  setCard('creative-week','creative-week-sub','creative-week-bar', wd.ci, targets.cw, wd.creative);
+  setCard('academic-week','academic-week-sub','academic-week-bar', wd.ai, targets.aw, wd.academic);
+  renderWeekGrid();
+}
+
+function renderWeekGrid() {
+  const grid = document.getElementById('week-grid');
+  const today = new Date(); today.setHours(0,0,0,0);
+  const days = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+  const dow = today.getDay();
+  const monday = new Date(today);
+  monday.setDate(today.getDate() - (dow===0?6:dow-1));
+  grid.innerHTML = '';
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(monday); d.setDate(monday.getDate()+i);
+    const ds = d.toISOString().slice(0,10);
+    const dayEnts = entries.filter(e => e.date===ds);
+    const isToday = ds===today.toISOString().slice(0,10);
+    const cell = document.createElement('div');
+    cell.className = 'day-cell'+(isToday?' today':'');
+    const dots = dayEnts.map(e => {
+      const t = getType(e.category);
+      const col = t==='creative'?'var(--creative)':t==='academic'?'var(--academic)':'#555';
+      return `<span class="day-dot" style="background:${col}" title="${e.category} (${e.hours}h)"></span>`;
+    }).join('');
+    cell.innerHTML = `<div class="day-name">${days[i]}</div><div class="day-date">${d.getDate()}</div>${dots}`;
+    grid.appendChild(cell);
+  }
+}
+
+function addEntry() {
+  const date = document.getElementById('entry-date').value;
+  const rawCat = document.getElementById('entry-category').value;
+  const custom = document.getElementById('entry-custom').value.trim();
+  const hours = document.getElementById('entry-hours').value;
+  const start = document.getElementById('entry-start').value;
+  const end   = document.getElementById('entry-end').value;
+  const notes = document.getElementById('entry-notes').value;
+  const fb = document.getElementById('log-feedback');
+
+  if (!date || !hours) { fb.textContent = 'Date and hours are required.'; return; }
+
+  let category = rawCat;
+  if (rawCat === 'creative-other') category = custom ? 'creative: ' + custom : 'creative: other';
+  if (rawCat === 'academic-other') category = custom ? 'academic: ' + custom : 'academic: other';
+
+  entries.unshift({ id: Date.now(), date, category, hours: parseFloat(hours), start, end, notes });
+  save(); renderDashboard(); renderHistory();
+
+  ['entry-hours','entry-start','entry-end','entry-notes','entry-custom'].forEach(id => document.getElementById(id).value='');
+  document.getElementById('entry-custom').style.display = 'none';
+  document.getElementById('entry-category').value = 'personal writing';
+  fb.textContent = '✦ Logged!';
+  setTimeout(() => fb.textContent='', 2000);
+}
+
+function deleteEntry(id) {
+  entries = entries.filter(e => e.id!==id);
+  save(); renderDashboard(); renderHistory();
+}
+
+function renderHistory() {
+  const tbody = document.getElementById('history-body');
+  const fd = document.getElementById('filter-date').value;
+  const fc = document.getElementById('filter-cat').value;
+  let filtered = entries.filter(e => {
+    if (fd && e.date!==fd) return false;
+    if (fc && getType(e.category)!==fc) return false;
+    return true;
+  });
+  const totalHours = filtered.reduce((s,e)=>s+(parseFloat(e.hours)||0),0);
+  document.getElementById('history-total').textContent = `${filtered.length} entries · ${totalHours.toFixed(1)}h total`;
+  if (!filtered.length) { tbody.innerHTML=`<tr><td colspan="7" class="empty">No entries yet. Start logging!</td></tr>`; return; }
+  tbody.innerHTML = filtered.map(e => `
+    <tr>
+      <td>${e.date}</td>
+      <td><span class="badge ${getType(e.category)}">${e.category}</span></td>
+      <td>${e.hours}h</td>
+      <td>${e.start||'—'}</td>
+      <td>${e.end||'—'}</td>
+      <td style="max-width:200px;color:var(--muted);font-size:0.82rem">${e.notes||'—'}</td>
+      <td><button class="btn btn-danger" onclick="deleteEntry(${e.id})">✕</button></td>
+    </tr>`).join('');
+}
+
+function clearFilters() {
+  document.getElementById('filter-date').value='';
+  document.getElementById('filter-cat').value='';
+  renderHistory();
+}
+
+function switchTab(name) {
+  const tabs = ['dashboard','log','history'];
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+  document.querySelectorAll('.tab')[tabs.indexOf(name)].classList.add('active');
+  document.getElementById('tab-'+name).classList.add('active');
+}
+
+// Init
+document.getElementById('today-date').textContent = new Date().toLocaleDateString('en-US',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
+document.getElementById('entry-date').value = todayStr();
+document.getElementById('creative-daily-target').value = targets.cd;
+document.getElementById('creative-weekly-target').value = targets.cw;
+document.getElementById('academic-daily-target').value = targets.ad;
+document.getElementById('academic-weekly-target').value = targets.aw;
+updateTargets();
+renderDashboard();
+renderHistory();
+</script>
+</body>
+</html>
