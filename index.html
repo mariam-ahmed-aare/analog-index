@@ -27,7 +27,7 @@
   .index-card.creative { border-top: 3px solid var(--creative); background: var(--creative-bg); }
   .index-card.academic { border-top: 3px solid var(--academic); background: var(--academic-bg); }
   .index-label { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); margin-bottom: 0.3rem; }
-  .index-score { font-size: 2.2rem; font-weight: bold; line-height: 1; }
+  .index-score { font-size: 2.2rem; font-weight: bold; line-height: 1; letter-spacing: -0.02em; }
   .index-card.creative .index-score { color: var(--creative); }
   .index-card.academic .index-score { color: var(--academic); }
   .index-target { font-size: 0.8rem; color: var(--muted); margin-top: 0.3rem; }
@@ -103,24 +103,24 @@
   <p class="section-title">Set your targets</p>
   <div class="target-row">
     <div class="target-group">
-      <label>Creative daily target</label>
-      <input type="range" min="10" max="80" value="30" id="creative-daily-target" oninput="updateTargets()">
-      <span class="target-val" id="cdt-val">30%</span>
+      <label>Creative daily target (hrs)</label>
+      <input type="range" min="1" max="10" value="3" id="creative-daily-target" oninput="updateTargets()">
+      <span class="target-val" id="cdt-val">3 pts</span>
     </div>
     <div class="target-group">
-      <label>Creative weekly target</label>
-      <input type="range" min="10" max="80" value="35" id="creative-weekly-target" oninput="updateTargets()">
-      <span class="target-val" id="cwt-val">35%</span>
+      <label>Creative weekly target (hrs)</label>
+      <input type="range" min="1" max="50" value="10" id="creative-weekly-target" oninput="updateTargets()">
+      <span class="target-val" id="cwt-val">10 pts</span>
     </div>
     <div class="target-group">
-      <label>Academic daily target</label>
-      <input type="range" min="10" max="80" value="40" id="academic-daily-target" oninput="updateTargets()">
-      <span class="target-val" id="adt-val">40%</span>
+      <label>Academic daily target (hrs)</label>
+      <input type="range" min="1" max="10" value="4" id="academic-daily-target" oninput="updateTargets()">
+      <span class="target-val" id="adt-val">4 pts</span>
     </div>
     <div class="target-group">
-      <label>Academic weekly target</label>
-      <input type="range" min="10" max="80" value="50" id="academic-weekly-target" oninput="updateTargets()">
-      <span class="target-val" id="awt-val">50%</span>
+      <label>Academic weekly target (hrs)</label>
+      <input type="range" min="1" max="50" value="20" id="academic-weekly-target" oninput="updateTargets()">
+      <span class="target-val" id="awt-val">20 pts</span>
     </div>
   </div>
 
@@ -185,8 +185,11 @@
           <option value="academic reading">Academic reading</option>
           <option value="studying">Studying</option>
           <option value="academic group work">Academic group work</option>
-          <option value="Dow project">Dow project</option>
           <option value="academic-other">Other academic...</option>
+        </optgroup>
+        <optgroup label="Work">
+          <option value="dow project">Dow Project</option>
+          <option value="gsi">GSI</option>
         </optgroup>
       </select>
       <input type="text" id="entry-custom" placeholder="Describe the activity..." class="custom-field" id="entry-custom">
@@ -236,7 +239,7 @@
 
 <script>
 const CREATIVE = ["personal writing","knitting","watched a film","personal reading","cooking","exercise"];
-const ACADEMIC = ["academic writing","academic reading","studying","academic group work","Dow project"];
+const ACADEMIC = ["academic writing","academic reading","studying","academic group work","dow project","gsi"];
 
 let entries = JSON.parse(localStorage.getItem('analog-entries-v2') || '[]');
 let targets = JSON.parse(localStorage.getItem('analog-targets-v2') || '{"cd":30,"cw":35,"ad":40,"aw":50}');
@@ -246,12 +249,12 @@ function save() {
   localStorage.setItem('analog-targets-v2', JSON.stringify(targets));
 }
 
-function todayStr() { return new Date().toISOString().slice(0,10); }
+function todayStr() { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; }
 
 function weekStart() {
   const d = new Date(); d.setHours(0,0,0,0);
   d.setDate(d.getDate() - d.getDay() + (d.getDay() === 0 ? -6 : 1));
-  return d.toISOString().slice(0,10);
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
 }
 
 function getType(cat) {
@@ -268,12 +271,9 @@ function handleCatChange(val) {
 }
 
 function calcIndices(ents) {
-  const total    = ents.reduce((s,e) => s + (parseFloat(e.hours)||0), 0);
   const creative = ents.filter(e => getType(e.category)==='creative').reduce((s,e)=>s+(parseFloat(e.hours)||0),0);
   const academic = ents.filter(e => getType(e.category)==='academic').reduce((s,e)=>s+(parseFloat(e.hours)||0),0);
-  return { total, creative, academic,
-    ci: total ? Math.round(creative/total*100) : null,
-    ai: total ? Math.round(academic/total*100) : null };
+  return { creative: Math.round(creative * 10) / 10, academic: Math.round(academic * 10) / 10 };
 }
 
 function updateTargets() {
@@ -282,28 +282,26 @@ function updateTargets() {
   targets.ad = parseInt(document.getElementById('academic-daily-target').value);
   targets.aw = parseInt(document.getElementById('academic-weekly-target').value);
   ['cdt','cwt','adt','awt'].forEach((id,i) =>
-    document.getElementById(id+'-val').textContent = [targets.cd,targets.cw,targets.ad,targets.aw][i]+'%');
+    document.getElementById(id+'-val').textContent = [targets.cd,targets.cw,targets.ad,targets.aw][i]+' pts');
   save(); renderDashboard();
 }
 
-function setCard(scoreId, subId, barId, score, target, hours) {
-  document.getElementById(scoreId).textContent = score !== null ? score+'%' : '—';
+function setCard(scoreId, subId, barId, score, target) {
+  document.getElementById(scoreId).textContent = score + ' pts';
   const sub = document.getElementById(subId), bar = document.getElementById(barId);
-  if (score !== null) {
-    const diff = score - target;
-    sub.textContent = `${hours.toFixed(1)}h logged · target ${target}% · ${diff>=0?'+':''}${diff}pp`;
-    bar.style.width = Math.min(score/target*100, 100)+'%';
-  } else { sub.textContent = 'No entries yet'; bar.style.width = '0%'; }
+  const diff = Math.round((score - target) * 10) / 10;
+  sub.textContent = `${score}h logged · target ${target} pts · ${diff >= 0 ? '+' : ''}${diff}`;
+  bar.style.width = Math.min(score / target * 100, 100) + '%';
 }
 
 function renderDashboard() {
   const today = todayStr(), ws = weekStart();
   const td = calcIndices(entries.filter(e => e.date===today));
   const wd = calcIndices(entries.filter(e => e.date>=ws && e.date<=today));
-  setCard('creative-today','creative-today-sub','creative-today-bar', td.ci, targets.cd, td.creative);
-  setCard('academic-today','academic-today-sub','academic-today-bar', td.ai, targets.ad, td.academic);
-  setCard('creative-week','creative-week-sub','creative-week-bar', wd.ci, targets.cw, wd.creative);
-  setCard('academic-week','academic-week-sub','academic-week-bar', wd.ai, targets.aw, wd.academic);
+  setCard('creative-today','creative-today-sub','creative-today-bar', td.creative, targets.cd);
+  setCard('academic-today','academic-today-sub','academic-today-bar', td.academic, targets.ad);
+  setCard('creative-week','creative-week-sub','creative-week-bar', wd.creative, targets.cw);
+  setCard('academic-week','academic-week-sub','academic-week-bar', wd.academic, targets.aw);
   renderWeekGrid();
 }
 
@@ -344,11 +342,17 @@ function addEntry() {
 
   if (!date || !hours) { fb.textContent = 'Date and hours are required.'; return; }
 
+  // Normalize date to yyyy-mm-dd regardless of browser/locale format
+  const parsedDate = new Date(date);
+  const normalizedDate = !isNaN(parsedDate)
+    ? `${parsedDate.getFullYear()}-${String(parsedDate.getMonth()+1).padStart(2,'0')}-${String(parsedDate.getDate()).padStart(2,'0')}`
+    : date;
+
   let category = rawCat;
   if (rawCat === 'creative-other') category = custom ? 'creative: ' + custom : 'creative: other';
   if (rawCat === 'academic-other') category = custom ? 'academic: ' + custom : 'academic: other';
 
-  entries.unshift({ id: Date.now(), date, category, hours: parseFloat(hours), start, end, notes });
+  entries.unshift({ id: Date.now(), date: normalizedDate, category, hours: parseFloat(hours), start, end, notes });
   save(); renderDashboard(); renderHistory();
 
   ['entry-hours','entry-start','entry-end','entry-notes','entry-custom'].forEach(id => document.getElementById(id).value='');
@@ -409,8 +413,6 @@ document.getElementById('creative-weekly-target').value = targets.cw;
 document.getElementById('academic-daily-target').value = targets.ad;
 document.getElementById('academic-weekly-target').value = targets.aw;
 updateTargets();
-renderDashboard();
-renderHistory();
 </script>
 </body>
 </html>
